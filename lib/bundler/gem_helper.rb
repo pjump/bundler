@@ -1,5 +1,6 @@
 require 'bundler/vendored_thor' unless defined?(Thor)
 require 'bundler'
+require 'rubygems/package_task'
 
 module Bundler
   class GemHelper
@@ -32,12 +33,13 @@ module Bundler
     end
 
     def install
-      built_gem_path = nil
+      built_gem_path ="pkg/#{name}-#{version}.gem"
+
+      Gem::PackageTask.new(gemspec) do |pkg|
+      end
 
       desc "Build #{name}-#{version}.gem into the pkg directory."
-      task 'build' do
-        built_gem_path = build_gem
-      end
+      task 'build' => 'gem'
 
       desc "Build and install #{name}-#{version}.gem into system gems."
       task 'install' => 'build' do
@@ -68,17 +70,6 @@ module Bundler
       end
 
       GemHelper.instance = self
-    end
-
-    def build_gem
-      file_name = nil
-      sh("gem build -V '#{spec_path}'") { |out, code|
-        file_name = File.basename(built_gem_path)
-        FileUtils.mkdir_p(File.join(base, 'pkg'))
-        FileUtils.mv(built_gem_path, 'pkg')
-        Bundler.ui.confirm "#{name} #{version} built to pkg/#{file_name}."
-      }
-      File.join(base, 'pkg', file_name)
     end
 
     def install_gem(built_gem_path = nil, local = false)
